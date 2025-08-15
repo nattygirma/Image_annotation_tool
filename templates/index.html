@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AStar Image Annotation Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .upload-card {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-card:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+
+        .upload-card h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .annotation-section {
+            display: none;
+            padding: 30px;
+        }
+
+        .annotation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            transition: width 0.3s ease;
+        }
+
+        .canvas-container {
+            position: relative;
+            margin: 20px 0;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            overflow: auto;
+            background: #f8f9fa;
+            max-height: 70vh;
+            text-align: center;
+        }
+
+        #annotationCanvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.2s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .annotations-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+
+        .annotation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .annotation-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .annotation-info {
+            flex: 1;
+        }
+
+        .annotation-label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .annotation-coords {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .export-section {
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            text-align: left;
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            color: #424242;
+        }
+
+        @media (max-width: 768px) {
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .annotation-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AStar Image Annotation Tool</h1>
+            <p>Upload images, draw bounding boxes, and export annotations in Pascal VOC format</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-grid">
+                <div class="upload-card">
+                    <h3>📁 Upload Images</h3>
+                    <p>Upload a ZIP file containing your images</p>
+                    <input type="file" id="imageUpload" class="file-input" accept=".zip">
+                    <button class="upload-btn" onclick="document.getElementById('imageUpload').click()">
+                        Choose ZIP File
+                    </button>
+                    <div id="imageStatus" class="status" style="display: none;"></div>
+                </div>
+                
+                <div class="upload-card">
+                    <h3>Upload Class Labels (Optional)</h3>
+                    <p>Upload a TXT file with class names (one per line)</p>
+                    <input type="file" id="classUpload" class="file-input" accept=".txt">
+                    <button class="upload-btn" onclick="document.getElementById('classUpload').click()">
+                        Choose TXT File
+                    </button>
+                    <div id="classStatus" class="status" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-section" id="annotationSection">
+            <div class="annotation-header">
+                <div class="progress-info">
+                    <span id="currentImage">Image 1 of 1</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span id="progressText">0%</span>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="exportAnnotations()">Export Annotations</button>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="annotationCanvas"></canvas>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <h3>🎯 Drawing Controls</h3>
+                    <div class="form-group">
+                        <label for="classLabel">Class Label:</label>
+                        <input type="text" id="classLabel" placeholder="Enter class name">
+                    </div>
+                    <div class="form-group">
+                        <label for="classDropdown">Or select from list:</label>
+                        <select id="classDropdown">
+                            <option value="">Select class...</option>
+                        </select>
+                    </div>
+                    <div id="colorLegend" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;">
+                        <p style="text-align: center; color: #6c757d; font-size: 0.9em;">Upload class labels to see color legend</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="clearCanvas()">Clear Canvas</button>
+                    <button class="btn btn-secondary" onclick="undoLastBox()">Undo Last Box</button>
+                </div>
+
+                <div class="control-group">
+                    <h3>📷 Navigation</h3>
+                    <button class="btn btn-secondary" onclick="previousImage()">← Previous</button>
+                    <button class="btn btn-secondary" onclick="nextImage()">Next →</button>
+                    <div class="form-group">
+                        <label for="imageSelect">Jump to image:</label>
+                        <select id="imageSelect" onchange="jumpToImage()">
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="saveAnnotations()">Save Annotations</button>
+                </div>
+
+                <div class="control-group">
+                    <h3>📝 Current Annotations</h3>
+                    <div class="annotations-list" id="annotationsList">
+                        <p style="text-align: center; color: #6c757d;">No annotations yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="export-section" id="exportSection" style="display: none;">
+            <div class="instructions">
+                <h3>📋 How to use this tool:</h3>
+                <ul>
+                    <li><strong>Upload:</strong> Start by uploading a ZIP file containing your images</li>
+                    <li><strong>Draw:</strong> Click and drag on the image to draw bounding boxes</li>
+                    <li><strong>Label:</strong> Enter class labels for each bounding box</li>
+                    <li><strong>Navigate:</strong> Use the navigation buttons to move between images</li>
+                    <li><strong>Save:</strong> Click "Save Annotations" to save your work</li>
+                    <li><strong>Export:</strong> Download annotations in Pascal VOC XML format</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/annotator.js"></script>
+</body>
+</html> 
